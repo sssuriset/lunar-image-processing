@@ -1,86 +1,66 @@
-# Lunar Image Processing and Quality Analysis
+# Kepler Light Curve Period Analysis
 
-This project processes public lunar imagery with Python to inspect image quality, contrast behavior, brightness distribution, and surface-feature visibility. The workflow treats each image as numerical pixel data, applies basic image-processing methods, and generates diagnostic outputs for comparison and documentation.
+This repo analyzes one Kepler light curve from a FITS file. The script reads the flux data with Astropy, removes flagged points, normalizes the light curve, searches for a dominant period, and checks the result with a simple sinusoidal fit.
 
-## Data Source
+The current run uses the Kepler FITS file included in the repo:
 
-The test image used in this project is NASA's Moon Mosaic, a public lunar photomosaic made from Lunar Reconnaissance Orbiter imagery.
+    kplr000757450-2009350155506_llc.fits
 
-## Project Motivation
+## What the script does
 
-Lunar images need more than visual inspection. Brightness distribution, contrast, edge visibility, and noise affect whether a lunar image is useful for surface interpretation and documentation. This project builds a small image-analysis workflow that connects astronomical imaging with numerical analysis in Python.
+The analysis starts with the Kepler table in the FITS file. It uses `PDCSAP_FLUX` when that column is available, then removes points with invalid time or flux values, nonpositive flux, or nonzero `QUALITY` flags. The removed rows are saved separately so the cleaning step can be checked later.
 
-## Methods
+After cleaning, the flux is divided by its median value. The script then runs a Lomb-Scargle period search over trial periods from 0.5 to 40 days. A sinusoidal curve is fit near the strongest periodogram peak. The fit is not meant to prove the physical source of the variability. It is a compact model used for checking the period and plotting residuals.
 
-The workflow:
+## Current outputs
 
-1. Loads lunar image files as grayscale numerical arrays
-2. Computes pixel statistics
-3. Generates pixel-intensity histograms
-4. Applies percentile-based normalization
-5. Applies contrast stretching
-6. Detects surface edges using a Canny edge detector
-7. Estimates residual noise by subtracting a blurred image from the normalized image
-8. Saves processed images and diagnostic plots
+Running the script creates:
 
-## Tools
+    outputs/cleaned_light_curve.csv
+    outputs/flagged_removed_points.csv
+    outputs/period_analysis_summary.csv
+    outputs/cleaned_light_curve.png
+    outputs/lomb_scargle_periodogram.png
+    outputs/model_fit.png
+    outputs/phase_folded_light_curve.png
+    outputs/residuals.png
 
-- Python
-- NumPy
-- Matplotlib
-- Pillow
-- scikit-image
+The summary CSV records the FITS file used, the flux column used, the number of removed points, the Lomb-Scargle period, an approximate period error from the peak width, the fitted period, and residual statistics.
 
-## Outputs
+## Plots
 
-The project generates:
+Cleaned light curve:
 
-- Normalized lunar images
-- Contrast-stretched lunar images
-- Edge-detection images
-- Noise residual images
-- Pixel-intensity histograms
-- Side-by-side comparison plots
-- Text summaries of image statistics
+![Cleaned light curve](outputs/cleaned_light_curve.png)
 
-## Results
+Lomb-Scargle period search:
 
-The workflow successfully processed the lunar mosaic and generated diagnostic image products. The processed image set includes normalized imagery, contrast-stretched imagery, an edge map, a noise-residual estimate, image tiles, a histogram, a side-by-side comparison plot, and a CSV metrics table.
+![Lomb-Scargle periodogram](outputs/lomb_scargle_periodogram.png)
 
-For the test image, the script computed:
+Sinusoidal fit:
 
-- Image size: 1024 px × 1024 px
-- Mean pixel value: 97.94
-- Median pixel value: 110.00
-- Standard deviation: 67.17
-- 1st percentile pixel value: 0.00
-- 99th percentile pixel value: 215.00
-- Sharpness score: 0.0114
-- Edge density: 0.0486
-- Noise residual standard deviation: 0.0424
-- Tiles saved: 9
+![Model fit](outputs/model_fit.png)
 
-The contrast-stretched output improves visibility in brighter lunar regions. The edge-detection output highlights strong surface boundaries, albedo transitions, crater-like structures, and visible mosaic seams. The noise-residual output shows small-scale variation after smoothing.
+Phase-folded light curve:
 
-## Example Diagnostic Output
+![Phase-folded light curve](outputs/phase_folded_light_curve.png)
 
-The main comparison plot shows the original lunar image, normalized image, contrast-stretched image, detected edges, and noise-residual estimate side by side. This makes it easier to evaluate how each processing step changes surface visibility and image quality.
+Residuals:
 
-## Limitations
+![Residuals](outputs/residuals.png)
 
-The test image is a public lunar mosaic rather than a raw calibrated science frame. Some detected edges come from mosaic boundaries and compression artifacts, not only lunar surface features. This project is meant as an image-processing workflow demonstration, not a calibrated planetary-science measurement pipeline.
+## Notes
 
-## Project Structure
+Kepler light curves can show periodic structure for several reasons, including stellar rotation, pulsation, eclipsing systems, or transits. This repo does not claim a planet detection. It is a period-analysis workflow for a real Kepler FITS light curve.
 
-```text
-lunar-image-processing/
-├── data/
-│   └── raw/
-├── outputs/
-│   ├── images/
-│   └── plots/
-├── src/
-│   └── process_image.py
-├── README.md
-├── requirements.txt
-└── .gitignore
+The period error reported here is a simple diagnostic from the width of the periodogram peak. It should not be treated as a full statistical uncertainty from a physical light-curve model.
+
+## Run
+
+Install the dependencies:
+
+    python3 -m pip install numpy pandas matplotlib astropy scipy
+
+Run the script:
+
+    python3 src/main.py
