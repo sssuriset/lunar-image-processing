@@ -1,66 +1,125 @@
-# Kepler Light Curve Period Analysis
+# Lunar Image Processing and Quality Analysis
 
-This repo analyzes one Kepler light curve from a FITS file. The script reads the flux data with Astropy, removes flagged points, normalizes the light curve, searches for a dominant period, and checks the result with a simple sinusoidal fit.
+This is a small Python project for working with lunar surface images. I made it to test basic image-processing steps that help inspect contrast, brightness spread, edge visibility, and residual noise in lunar imagery.
 
-The current run uses the Kepler FITS file included in the repo:
+The script reads images from `data/raw/`, processes them, and saves the outputs into the `outputs/` folder.
 
-    kplr000757450-2009350155506_llc.fits
+## What it does
 
-## What the script does
+For each image, the script creates:
 
-The analysis starts with the Kepler table in the FITS file. It uses `PDCSAP_FLUX` when that column is available, then removes points with invalid time or flux values, nonpositive flux, or nonzero `QUALITY` flags. The removed rows are saved separately so the cleaning step can be checked later.
+- a normalized grayscale image
+- a contrast-stretched image
+- an edge map
+- a residual/noise image
+- smaller image tiles
+- a comparison plot
+- a CSV row with image-quality metrics
 
-After cleaning, the flux is divided by its median value. The script then runs a Lomb-Scargle period search over trial periods from 0.5 to 40 days. A sinusoidal curve is fit near the strongest periodogram peak. The fit is not meant to prove the physical source of the variability. It is a compact model used for checking the period and plotting residuals.
+This is not a crater-detection or terrain-classification project. It is a preprocessing and quality-check workflow for comparing lunar image products.
 
-## Current outputs
+## Installation
 
-Running the script creates:
+Clone the repo:
 
-    outputs/cleaned_light_curve.csv
-    outputs/flagged_removed_points.csv
-    outputs/period_analysis_summary.csv
-    outputs/cleaned_light_curve.png
-    outputs/lomb_scargle_periodogram.png
-    outputs/model_fit.png
-    outputs/phase_folded_light_curve.png
-    outputs/residuals.png
-
-The summary CSV records the FITS file used, the flux column used, the number of removed points, the Lomb-Scargle period, an approximate period error from the peak width, the fitted period, and residual statistics.
-
-## Plots
-
-Cleaned light curve:
-
-![Cleaned light curve](outputs/cleaned_light_curve.png)
-
-Lomb-Scargle period search:
-
-![Lomb-Scargle periodogram](outputs/lomb_scargle_periodogram.png)
-
-Sinusoidal fit:
-
-![Model fit](outputs/model_fit.png)
-
-Phase-folded light curve:
-
-![Phase-folded light curve](outputs/phase_folded_light_curve.png)
-
-Residuals:
-
-![Residuals](outputs/residuals.png)
-
-## Notes
-
-Kepler light curves can show periodic structure for several reasons, including stellar rotation, pulsation, eclipsing systems, or transits. This repo does not claim a planet detection. It is a period-analysis workflow for a real Kepler FITS light curve.
-
-The period error reported here is a simple diagnostic from the width of the periodogram peak. It should not be treated as a full statistical uncertainty from a physical light-curve model.
-
-## Run
+    git clone https://github.com/sssuriset/lunar-image-processing.git
+    cd lunar-image-processing
 
 Install the dependencies:
 
-    python3 -m pip install numpy pandas matplotlib astropy scipy
+    python3 -m pip install -r requirements.txt
 
-Run the script:
+Main packages used:
 
-    python3 src/main.py
+    numpy
+    matplotlib
+    pillow
+    scikit-image
+
+## How to run it
+
+Put one or more lunar images in:
+
+    data/raw/
+
+Then run:
+
+    python3 src/process_image.py
+
+Supported image types:
+
+    .png
+    .jpg
+    .jpeg
+    .tif
+    .tiff
+
+The script saves processed images, plots, tiles, and the metrics CSV in `outputs/`.
+
+## Processing steps
+
+### Normalization
+
+Each image is converted to grayscale and rescaled using percentile limits. Percentile scaling is used instead of the absolute minimum and maximum because a few extreme pixels can flatten the useful brightness range.
+
+### Contrast stretching
+
+The script stretches the useful brightness range of the image. This makes crater rims, shadow boundaries, surface texture, and bright terrain easier to compare visually.
+
+### Edge detection
+
+An edge map is created to show sharp boundaries in the image. This gives a rough check of how much visible structure is present after processing.
+
+### Residual image
+
+The script subtracts a blurred version of the normalized image from the normalized image itself. The result leaves smaller-scale variation behind. I use this as a residual/noise check, not as a calibrated noise model.
+
+The residual plot uses symmetric limits so positive and negative residuals are displayed evenly.
+
+### Tiling
+
+The image is split into smaller sections. Edge tiles are kept when the image dimensions do not divide evenly by the tile size, so the script does not quietly drop the right or bottom edge of an image.
+
+## Metrics
+
+The CSV file records:
+
+    mean
+    median
+    std
+    sharpness
+    edgeFrac
+    residStd
+    contrastRange
+    brightFrac
+    darkFrac
+
+Metric meanings:
+
+- `mean`: average normalized brightness
+- `median`: median normalized brightness
+- `std`: spread of pixel values
+- `sharpness`: rough sharpness estimate based on image variation
+- `edgeFrac`: fraction of pixels marked as edges
+- `residStd`: spread of the residual image
+- `contrastRange`: difference between high and low percentile brightness values
+- `brightFrac`: fraction of very bright pixels
+- `darkFrac`: fraction of very dark pixels
+
+These metrics are useful for comparing images in the same batch. They should not be treated as calibrated lunar surface measurements.
+
+## Limitations
+
+This project uses classical image-processing methods only. It does not georeference images, match features to lunar catalogs, classify terrain, or estimate physical reflectance.
+
+Some detected edges may come from image seams, compression artifacts, or brightness transitions rather than actual lunar surface features.
+
+## Possible upgrades
+
+Reasonable next steps:
+
+- add FITS image support
+- add command-line options for tile size and contrast limits
+- add batch summary plots
+- test crater or ridge candidate detection
+- compare processed outputs against labeled lunar features
