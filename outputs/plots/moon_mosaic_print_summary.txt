@@ -1,0 +1,18 @@
+Image file: moon_mosaic_print.jpg
+
+Pixel and image-quality statistics
+----------------------------------
+file: moon_mosaic_print.jpg
+height_px: 1024
+width_px: 1024
+min: 0.0
+max: 255.0
+mean: 97.93679332733154
+median: 110.0
+standard_deviation: 67.16963659419159
+p1: 0.0
+p99: 215.0
+sharpness_score: 0.011415130054067446
+edge_density: 0.048598289489746094
+noise_residual_std: 0.042422303546308784
+tiles_saved: 9
