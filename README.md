@@ -43,6 +43,33 @@ The project generates:
 - Side-by-side comparison plots
 - Text summaries of image statistics
 
+## Results
+
+The workflow successfully processed the lunar mosaic and generated diagnostic image products. The processed image set includes normalized imagery, contrast-stretched imagery, an edge map, a noise-residual estimate, image tiles, a histogram, a side-by-side comparison plot, and a CSV metrics table.
+
+For the test image, the script computed:
+
+- Image size: 1024 px × 1024 px
+- Mean pixel value: 97.94
+- Median pixel value: 110.00
+- Standard deviation: 67.17
+- 1st percentile pixel value: 0.00
+- 99th percentile pixel value: 215.00
+- Sharpness score: 0.0114
+- Edge density: 0.0486
+- Noise residual standard deviation: 0.0424
+- Tiles saved: 9
+
+The contrast-stretched output improves visibility in brighter lunar regions. The edge-detection output highlights strong surface boundaries, albedo transitions, crater-like structures, and visible mosaic seams. The noise-residual output shows small-scale variation after smoothing.
+
+## Example Diagnostic Output
+
+The main comparison plot shows the original lunar image, normalized image, contrast-stretched image, detected edges, and noise-residual estimate side by side. This makes it easier to evaluate how each processing step changes surface visibility and image quality.
+
+## Limitations
+
+The test image is a public lunar mosaic rather than a raw calibrated science frame. Some detected edges come from mosaic boundaries and compression artifacts, not only lunar surface features. This project is meant as an image-processing workflow demonstration, not a calibrated planetary-science measurement pipeline.
+
 ## Project Structure
 
 ```text
