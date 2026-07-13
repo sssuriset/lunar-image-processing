@@ -13,19 +13,19 @@ TILEOUT = Path("outputs/tiles")
 METRICS = Path("outputs/image_metrics.csv")
 
 
-def setupdirs():
+def setup_dirs():
     IMGOUT.mkdir(parents=True, exist_ok=True)
     PLOTOUT.mkdir(parents=True, exist_ok=True)
     TILEOUT.mkdir(parents=True, exist_ok=True)
     METRICS.parent.mkdir(parents=True, exist_ok=True)
 
 
-def loadimg(path):
+def load_img(path):
     img = Image.open(path).convert("L")
     return np.array(img, dtype=float)
 
 
-def normpercent(img, lo=1, hi=99):
+def norm_percent(img, lo=1, hi=99):
     low = np.percentile(img, lo)
     high = np.percentile(img, hi)
 
@@ -47,28 +47,28 @@ def stretch(img, lo=5, hi=95):
     return (clipped - low) / (high - low)
 
 
-def findedges(img):
-    normed = normpercent(img)
+def find_edges(img):
+    normed = norm_percent(img)
     return feature.canny(normed, sigma=2)
 
 
 def residual(img):
-    normed = normpercent(img)
+    normed = norm_percent(img)
     smooth = filters.gaussian(normed, sigma=2)
     return normed - smooth
 
 
 def sharpness(img):
-    normed = normpercent(img)
+    normed = norm_percent(img)
     lap = filters.laplace(normed)
     return float(np.var(lap))
 
 
-def edgefrac(edgeimg):
-    return float(np.sum(edgeimg) / edgeimg.size)
+def edge_frac(edge_img):
+    return float(np.sum(edge_img) / edge_img.size)
 
 
-def saveimg(img, outpath, title=None, vmin=None, vmax=None):
+def save_img(img, outpath, title=None, vmin=None, vmax=None):
     plt.figure(figsize=(8, 8))
     plt.imshow(img, cmap="gray", vmin=vmin, vmax=vmax)
     plt.axis("off")
@@ -81,7 +81,7 @@ def saveimg(img, outpath, title=None, vmin=None, vmax=None):
     plt.close()
 
 
-def savehist(img, outpath):
+def save_hist(img, outpath):
     plt.figure(figsize=(8, 5))
     plt.hist(img.flatten(), bins=100)
     plt.xlabel("Pixel value")
@@ -92,9 +92,9 @@ def savehist(img, outpath):
     plt.close()
 
 
-def savecompare(original, normed, stretched, edgeimg, resid, outpath):
+def save_compare(original, normed, stretched, edge_img, resid, outpath):
     fig, axes = plt.subplots(1, 5, figsize=(20, 4))
-    reslim = max(abs(float(np.min(resid))), abs(float(np.max(resid))))
+    res_lim = max(abs(float(np.min(resid))), abs(float(np.max(resid))))
 
     axes[0].imshow(original, cmap="gray")
     axes[0].set_title("Original")
@@ -108,40 +108,40 @@ def savecompare(original, normed, stretched, edgeimg, resid, outpath):
     axes[2].set_title("Stretched")
     axes[2].axis("off")
 
-    axes[3].imshow(edgeimg, cmap="gray")
+    axes[3].imshow(edge_img, cmap="gray")
     axes[3].set_title("Edges")
     axes[3].axis("off")
 
-    axes[4].imshow(resid, cmap="gray", vmin=-reslim, vmax=reslim)
+    axes[4].imshow(resid, cmap="gray", vmin=-res_lim, vmax=res_lim)
     axes[4].set_title("Residual")
     axes[4].axis("off")
 
     plt.tight_layout()
-    plt.savefig(outpath, dpi=300)
+    plt.savefig(outpath, dpi=150)
     plt.close()
 
 
-def savetiles(img, path, tilesize=300, maxtiles=12):
+def save_tiles(img, path, tile_size=300, max_tiles=12):
     height, width = img.shape
-    normed = normpercent(img)
+    normed = norm_percent(img)
     count = 0
 
-    for row in range(0, height, tilesize):
-        for col in range(0, width, tilesize):
-            rowend = min(row + tilesize, height)
-            colend = min(col + tilesize, width)
-            tile = normed[row:rowend, col:colend]
-            tilepath = TILEOUT / f"{path.stem}_tile_{count:03d}.png"
-            saveimg(tile, tilepath, vmin=0, vmax=1)
+    for row in range(0, height, tile_size):
+        for col in range(0, width, tile_size):
+            row_end = min(row + tile_size, height)
+            col_end = min(col + tile_size, width)
+            tile = normed[row:row_end, col:col_end]
+            tile_path = TILEOUT / f"{path.stem}_tile_{count:03d}.png"
+            save_img(tile, tile_path, vmin=0, vmax=1)
             count += 1
 
-            if count >= maxtiles:
+            if count >= max_tiles:
                 return count
 
     return count
 
 
-def summarize(path, img, edgeimg, resid):
+def summarize(path, img, edge_img, resid):
     p1 = float(np.percentile(img, 1))
     p5 = float(np.percentile(img, 5))
     p95 = float(np.percentile(img, 95))
@@ -149,8 +149,8 @@ def summarize(path, img, edgeimg, resid):
 
     return {
         "file": path.name,
-        "heightPx": int(img.shape[0]),
-        "widthPx": int(img.shape[1]),
+        "height_px": int(img.shape[0]),
+        "width_px": int(img.shape[1]),
         "min": float(np.min(img)),
         "max": float(np.max(img)),
         "mean": float(np.mean(img)),
@@ -158,16 +158,16 @@ def summarize(path, img, edgeimg, resid):
         "std": float(np.std(img)),
         "p1": p1,
         "p99": p99,
-        "contrastRange": p99 - p1,
-        "brightFrac": float(np.mean(img >= p95)),
-        "darkFrac": float(np.mean(img <= p5)),
+        "contrast_range": p99 - p1,
+        "bright_frac": float(np.mean(img >= p95)),
+        "dark_frac": float(np.mean(img <= p5)),
         "sharpness": sharpness(img),
-        "edgeFrac": edgefrac(edgeimg),
-        "residStd": float(np.std(resid)),
+        "edge_frac": edge_frac(edge_img),
+        "resid_std": float(np.std(resid)),
     }
 
 
-def writetxt(path, stats):
+def write_txt(path, stats):
     outfile = PLOTOUT / f"{path.stem}_summary.txt"
 
     with open(outfile, "w") as file:
@@ -179,7 +179,7 @@ def writetxt(path, stats):
             file.write(f"{key}: {value}\n")
 
 
-def writecsv(rows):
+def write_csv(rows):
     if not rows:
         return
 
@@ -191,25 +191,25 @@ def writecsv(rows):
         writer.writerows(rows)
 
 
-def runone(path):
-    img = loadimg(path)
-    normed = normpercent(img)
+def run_one(path):
+    img = load_img(path)
+    normed = norm_percent(img)
     stretched = stretch(img)
-    edgeimg = findedges(img)
+    edge_img = find_edges(img)
     resid = residual(img)
-    reslim = max(abs(float(np.min(resid))), abs(float(np.max(resid))))
+    res_lim = max(abs(float(np.min(resid))), abs(float(np.max(resid))))
 
-    stats = summarize(path, img, edgeimg, resid)
+    stats = summarize(path, img, edge_img, resid)
 
-    saveimg(normed, IMGOUT / f"{path.stem}_norm.png", "Normalized lunar image", vmin=0, vmax=1)
-    saveimg(stretched, IMGOUT / f"{path.stem}_stretch.png", "Contrast stretched lunar image", vmin=0, vmax=1)
-    saveimg(edgeimg, IMGOUT / f"{path.stem}_edges.png", "Lunar surface edges")
-    saveimg(resid, IMGOUT / f"{path.stem}_residual.png", "Residual image", vmin=-reslim, vmax=reslim)
-    savehist(img, PLOTOUT / f"{path.stem}_hist.png")
-    savecompare(img, normed, stretched, edgeimg, resid, PLOTOUT / f"{path.stem}_compare.png")
+    save_img(normed, IMGOUT / f"{path.stem}_norm.png", "Normalized lunar image", vmin=0, vmax=1)
+    save_img(stretched, IMGOUT / f"{path.stem}_stretch.png", "Contrast stretched lunar image", vmin=0, vmax=1)
+    save_img(edge_img, IMGOUT / f"{path.stem}_edges.png", "Lunar surface edges")
+    save_img(resid, IMGOUT / f"{path.stem}_residual.png", "Residual image", vmin=-res_lim, vmax=res_lim)
+    save_hist(img, PLOTOUT / f"{path.stem}_hist.png")
+    save_compare(img, normed, stretched, edge_img, resid, PLOTOUT / f"{path.stem}_compare.png")
 
-    stats["tilesSaved"] = savetiles(img, path)
-    writetxt(path, stats)
+    stats["tiles_saved"] = save_tiles(img, path)
+    write_txt(path, stats)
 
     print(f"\nProcessed {path.name}")
     for key, value in stats.items():
@@ -219,7 +219,7 @@ def runone(path):
 
 
 def main():
-    setupdirs()
+    setup_dirs()
 
     imgs = []
     imgs.extend(RAW.glob("*.png"))
@@ -236,9 +236,9 @@ def main():
     rows = []
 
     for path in imgs:
-        rows.append(runone(path))
+        rows.append(run_one(path))
 
-    writecsv(rows)
+    write_csv(rows)
     print(f"\nSaved metrics table to {METRICS}")
 
 

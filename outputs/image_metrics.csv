@@ -1,2 +1,2 @@
-file,height_px,width_px,min,max,mean,median,standard_deviation,p1,p99,sharpness_score,edge_density,noise_residual_std,tiles_saved
-moon_mosaic_print.jpg,1024,1024,0.0,255.0,97.93679332733154,110.0,67.16963659419159,0.0,215.0,0.011415130054067446,0.048598289489746094,0.042422303546308784,9
+file,height_px,width_px,min,max,mean,median,std,p1,p99,contrast_range,bright_frac,dark_frac,sharpness,edge_frac,resid_std,tiles_saved
+moon_mosaic_print.jpg,1024,1024,0.0,255.0,97.93679332733154,110.0,67.16963659419159,0.0,215.0,215.0,0.0516510009765625,0.21248245239257812,0.011415130054067446,0.048598289489746094,0.042422303546308784,12

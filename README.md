@@ -1,125 +1,26 @@
-# Lunar Image Processing and Quality Analysis
+# Lunar Image Processing
 
-This is a small Python project for working with lunar surface images. I made it to test basic image-processing steps that help inspect contrast, brightness spread, edge visibility, and residual noise in lunar imagery.
+A quality-inspection workflow for lunar surface imagery. For each image it produces a percentile-normalized version, a contrast stretch, a Canny edge map, a residual noise image, and a set of tiles, then records seventeen image-quality metrics to CSV so images in a batch can be compared numerically instead of by eye.
 
-The script reads images from `data/raw/`, processes them, and saves the outputs into the `outputs/` folder.
+![Processing comparison](outputs/plots/moon_mosaic_print_compare.png)
 
-## What it does
+## Run
 
-For each image, the script creates:
+```bash
+python3 -m pip install numpy matplotlib pillow scikit-image
+python3 src/process_image.py
+```
 
-- a normalized grayscale image
-- a contrast-stretched image
-- an edge map
-- a residual/noise image
-- smaller image tiles
-- a comparison plot
-- a CSV row with image-quality metrics
-
-This is not a crater-detection or terrain-classification project. It is a preprocessing and quality-check workflow for comparing lunar image products.
-
-## Installation
-
-Clone the repo:
-
-    git clone https://github.com/sssuriset/lunar-image-processing.git
-    cd lunar-image-processing
-
-Install the dependencies:
-
-    python3 -m pip install -r requirements.txt
-
-Main packages used:
-
-    numpy
-    matplotlib
-    pillow
-    scikit-image
-
-## How to run it
-
-Put one or more lunar images in:
-
-    data/raw/
-
-Then run:
-
-    python3 src/process_image.py
-
-Supported image types:
-
-    .png
-    .jpg
-    .jpeg
-    .tif
-    .tiff
-
-The script saves processed images, plots, tiles, and the metrics CSV in `outputs/`.
-
-## Processing steps
-
-### Normalization
-
-Each image is converted to grayscale and rescaled using percentile limits. Percentile scaling is used instead of the absolute minimum and maximum because a few extreme pixels can flatten the useful brightness range.
-
-### Contrast stretching
-
-The script stretches the useful brightness range of the image. This makes crater rims, shadow boundaries, surface texture, and bright terrain easier to compare visually.
-
-### Edge detection
-
-An edge map is created to show sharp boundaries in the image. This gives a rough check of how much visible structure is present after processing.
-
-### Residual image
-
-The script subtracts a blurred version of the normalized image from the normalized image itself. The result leaves smaller-scale variation behind. I use this as a residual/noise check, not as a calibrated noise model.
-
-The residual plot uses symmetric limits so positive and negative residuals are displayed evenly.
-
-### Tiling
-
-The image is split into smaller sections. Edge tiles are kept when the image dimensions do not divide evenly by the tile size, so the script does not quietly drop the right or bottom edge of an image.
+The script processes every `.png`, `.jpg`, `.jpeg`, `.tif`, and `.tiff` in `data/raw/` and writes to `outputs/`: full-size processed images in `images/`, tiles in `tiles/`, the histogram and comparison figures plus a text summary in `plots/`, and the metrics table at `image_metrics.csv`. A sample lunar mosaic print is included in `data/raw/` so the pipeline runs out of the box.
 
 ## Metrics
 
-The CSV file records:
+`image_metrics.csv` records one row per image: dimensions, min, max, mean, median, std, the 1st and 99th percentiles, `contrast_range` (p99 minus p1), `bright_frac` and `dark_frac` (fraction of pixels beyond the 95th and below the 5th percentile), `sharpness` (variance of the Laplacian of the normalized image), `edge_frac` (fraction of pixels the edge detector marks), `resid_std` (spread of the residual image), and `tiles_saved`. The metrics rank and compare images within a batch; they are not calibrated lunar surface measurements.
 
-    mean
-    median
-    std
-    sharpness
-    edgeFrac
-    residStd
-    contrastRange
-    brightFrac
-    darkFrac
+## Method notes
 
-Metric meanings:
+Normalization rescales between the 1st and 99th percentile rather than the absolute min and max, since a few extreme pixels can flatten the useful brightness range of the whole image. The contrast stretch does the same between the 5th and 95th percentiles for visual inspection of crater rims, shadow boundaries, and surface texture.
 
-- `mean`: average normalized brightness
-- `median`: median normalized brightness
-- `std`: spread of pixel values
-- `sharpness`: rough sharpness estimate based on image variation
-- `edgeFrac`: fraction of pixels marked as edges
-- `residStd`: spread of the residual image
-- `contrastRange`: difference between high and low percentile brightness values
-- `brightFrac`: fraction of very bright pixels
-- `darkFrac`: fraction of very dark pixels
+The residual image subtracts a Gaussian-blurred copy of the normalized image from itself, leaving small-scale variation as a rough noise check. Its display uses symmetric limits so positive and negative residuals read evenly.
 
-These metrics are useful for comparing images in the same batch. They should not be treated as calibrated lunar surface measurements.
-
-## Limitations
-
-This project uses classical image-processing methods only. It does not georeference images, match features to lunar catalogs, classify terrain, or estimate physical reflectance.
-
-Some detected edges may come from image seams, compression artifacts, or brightness transitions rather than actual lunar surface features.
-
-## Possible upgrades
-
-Reasonable next steps:
-
-- add FITS image support
-- add command-line options for tile size and contrast limits
-- add batch summary plots
-- test crater or ridge candidate detection
-- compare processed outputs against labeled lunar features
+Tiling keeps partial edge tiles when dimensions do not divide evenly, so the right and bottom of an image are never silently dropped. On scanned or mosaicked sources, some detected edges come from seams, compression artifacts, and brightness transitions rather than lunar surface features, which is worth remembering when reading `edge_frac`.
